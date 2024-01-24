@@ -13,7 +13,7 @@
 
 HINSTANCE DllHandle; // Self modhandle
 
-std::string gPluginName = "LH Core";
+std::string gPluginName = "sam-k0.callbackcore.yytk";
 YYTKPlugin* gThisPlugin = nullptr;
 CallbackAttributes_t* callbackAttr = nullptr;
 
@@ -23,7 +23,6 @@ namespace Misc {
     {
         PrintMessage(c, (gPluginName + ": " + s).c_str());
     }
-
 
     bool VectorContains(std::string find, std::vector<std::string>* v)
     {
@@ -43,7 +42,6 @@ namespace Misc {
         v->push_back(str);
         return true;
     }
-
 
     inline bool FileExists(const std::string& name) {
         if (FILE* file = fopen(name.c_str(), "r")) {

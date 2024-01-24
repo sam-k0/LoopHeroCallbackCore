@@ -29,7 +29,7 @@ bool RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins ca
 
     // add to map
     gRegisteredPlugins.insert(std::pair<std::string, YYTKPlugin*>(modName, pluginHandle));
-    Misc::Print("Registered mod" + modName, CLR_GREEN);
+    Misc::Print("Registered callbacks for mod: " + modName, CLR_GREEN);
     return true;
 }
 
@@ -44,11 +44,16 @@ bool UnregisterModule(std::string modName) // Plugins call this to say goodbye
 
     // remove from map
     gRegisteredPlugins.erase(modName);
-    Misc::Print("Unregistered mod" + modName, CLR_GREEN);
+    Misc::Print("Unregistered mod: " + modName, CLR_GREEN);
     return true;
 }
 
+void ShowWelcomeMessage()
+{
+    // Show a welcome message with multiple lines, but only as a single message
+    Misc::Print("--------------------------\nCallback Core is loaded.\nPress F12 to list mods that registered callbacks.\n--------------------------", CLR_YELLOW);
 
+}
 // Unload
 YYTKStatus PluginUnload()
 {
@@ -84,7 +89,8 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 DllExport YYTKStatus PluginEntry(
     YYTKPlugin* PluginObject // A pointer to the dedicated plugin object
 )
-{
+{   
+    ShowWelcomeMessage();
     while (GetYYTKModule() == nullptr)
     {
         // waiting for yytk
@@ -133,6 +139,35 @@ DllExport YYTKStatus PluginEntry(
     return YYTK_OK; // Successful PluginEntry.
 }
 
+void PrintRegisteredMods()
+{
+// Show registered mods as a one-liner
+    std::string mods = "[F12] Registered mods:\n";
+    for (auto const& mod : gRegisteredPlugins)
+    {
+        mods += mod.first + "\n";
+    }
+    mods = mods.substr(0, mods.size() - 1);
+    Misc::Print(mods, CLR_YELLOW);
+}
+
+
+DWORD WINAPI KeyControls(HINSTANCE hModule)
+{
+    while(true)
+    {
+        if (GetAsyncKeyState(VK_F12))
+        {   
+            if(!gReady)continue;
+
+            // List all registered mods
+            PrintRegisteredMods();
+        }
+        Sleep(100);
+
+    }
+}
+
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
                        LPVOID lpReserved
@@ -141,6 +176,8 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+        // Start a thread to listen for button presses
+        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)KeyControls, NULL, 0, NULL);
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
