@@ -18,8 +18,6 @@ YYTKPlugin* gThisPlugin = nullptr;
 CallbackAttributes_t* callbackAttr = nullptr;
 
 
-
-
 namespace Misc {
     void Print(std::string s, Color c = CLR_DEFAULT)
     {

@@ -7,7 +7,47 @@
 // Plugin functionality
 #include <fstream>
 #include <iterator>
+#include <map>
 #define _CRT_SECURE_NO_WARNINGS
+
+std::map<std::string, YYTKPlugin*> gRegisteredPlugins;
+bool gReady = false;
+
+bool Ready() // Plugins call this to see if the core is present
+{
+    return gReady;
+}
+
+bool RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins call this to register themselves to the core
+{
+    // Check if the module is already registered
+    if (gRegisteredPlugins.find(modName) != gRegisteredPlugins.end())
+    {
+        Misc::Print("Module already registered", CLR_RED);
+        return false;
+    }
+
+    // add to map
+    gRegisteredPlugins.insert(std::pair<std::string, YYTKPlugin*>(modName, pluginHandle));
+    Misc::Print("Registered mod" + modName, CLR_GREEN);
+    return true;
+}
+
+bool UnregisterModule(std::string modName) // Plugins call this to say goodbye
+{
+    // Check if the module is registered at all
+    if (gRegisteredPlugins.find(modName) == gRegisteredPlugins.end())
+    {
+        Misc::Print("Module not registered", CLR_RED);
+        return false;
+    }
+
+    // remove from map
+    gRegisteredPlugins.erase(modName);
+    Misc::Print("Unregistered mod" + modName, CLR_GREEN);
+    return true;
+}
+
 
 // Unload
 YYTKStatus PluginUnload()
@@ -31,6 +71,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
     if (!codeObj->i_pName)
         return YYTK_INVALIDARG;
 
+    
 
     // Original event
     codeEvent->Call(selfInst, otherInst, codeObj, std::get<3>(codeEvent->Arguments()), std::get<4>(codeEvent->Arguments()));
@@ -44,7 +85,12 @@ DllExport YYTKStatus PluginEntry(
     YYTKPlugin* PluginObject // A pointer to the dedicated plugin object
 )
 {
-    Misc::Print("I'm present! Hooks should be working correctly.");
+    while (GetYYTKModule() == nullptr)
+    {
+        // waiting for yytk
+    }
+
+    Misc::Print("Exporting function...", CLR_YELLOW);
     gThisPlugin = PluginObject;
     gThisPlugin->PluginUnload = PluginUnload;
 
@@ -54,9 +100,36 @@ DllExport YYTKStatus PluginEntry(
         PmCreateCallback(pluginAttributes, callbackAttr, reinterpret_cast<FNEventHandler>(ExecuteCodeCallback), EVT_CODE_EXECUTE, nullptr);
     }
 
+    gReady = true;
+    
+    // Set exported "ready" fn
+    PluginAttributes_t* pAttr = nullptr;
+    if (PmGetPluginAttributes(PluginObject, pAttr) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmGetPluginAttributes", CLR_RED);
+        return YYTK_FAIL;
+    }
 
-    // Initialize the plugin, set callbacks inside the PluginObject.
-    // Set-up buffers.
+    if (PmSetExported(pAttr, "CoreReady", Ready) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported Ready()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    // Export RegisterModule and UnregisterModule
+    if (PmSetExported(pAttr, "RegisterModule", RegisterModule) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported RegisterModule()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    if (PmSetExported(pAttr, "UnregisterModule", UnregisterModule) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported UnregisterModule()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    Misc::Print("Exported functions correctly", CLR_GREEN);
     return YYTK_OK; // Successful PluginEntry.
 }
 
