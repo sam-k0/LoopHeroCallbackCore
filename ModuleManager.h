@@ -32,6 +32,7 @@ bool ModuleAllowed(std::string modName)
     }
     else
     {
+        Misc::Print("Creating Mods CFG", CLR_GOLD);
         std::ofstream file(blacklistedModsPath); // Create file without specifying content
         file.close();
         return true;
@@ -47,23 +48,10 @@ bool RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins ca
         Misc::Print("Module already registered", CLR_RED);
         return false;
     }
-
-    // Check if allowed to load
-    if (ModuleAllowed(modName))
-    {
-        // add to map
-        gRegisteredPlugins.insert(std::pair<std::string, YYTKPlugin*>(modName, pluginHandle));
-        Misc::Print("Registered callbacks for mod: " + modName, CLR_GREEN);
-        return true;
-    }
-    else
-    {
-        Misc::Print("Unloaded plugin: " + modName, CLR_RED);
-        // not allowed to load
-        PmUnloadPlugin(pluginHandle->PluginStart);
-        return true; // maybe change this to give mod feedback
-    }
-
+    // add to map
+    gRegisteredPlugins.insert(std::pair<std::string, YYTKPlugin*>(modName, pluginHandle));
+    Misc::Print("Registered callbacks for mod: " + modName, CLR_GREEN);
+    return true;
     
 }
 
