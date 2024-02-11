@@ -18,7 +18,7 @@ YYRValue modsInfo = -4.;
 bool buttonHovered = false;
 int lastSurf = -1;
 bool active = false;
-
+std::vector<std::string> blacklistPluginNames;
 
 void ShowWelcomeMessage()
 {
@@ -72,7 +72,10 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         modsbutton = Binds::CallBuiltinA("instance_create_depth", { 531.,170.,-10009.,(double)LHObjectEnum::o_base_button });
         Binds::CallBuiltinA("variable_instance_set", { modsbutton, "sprite_index", (double)LHSpriteEnum::s_camp_buildingb });
 
+     
         PrintMessage(CLR_RED, "Created btn %d", (int)modsbutton);
+        // load blacklist
+        blacklistPluginNames = Filesys::ReadFromFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist);
     }
 
     if (Misc::StringHasSubstr(codeObj->i_pName, "o_camp_game_button_Draw"))
@@ -111,6 +114,8 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
                 modsInfo = Binds::CallBuiltinA("instance_create_depth", { 32.,32.,-999.,double(LHObjectEnum::o_camp_statistik) });
                 YYRValue scrollerStruct = Binds::CallBuiltinA("variable_instance_get", { modsInfo, "scroller" });
                 Binds::CallBuiltinA("variable_struct_set", { scrollerStruct, "active", 0.0 }); // Dont allow scrolling
+                
+                // Create list of buttons with blacklisted / not blacklisted content
             }
         }
     }
@@ -123,7 +128,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
             // Check if surf exists, free it, create new, assign
             YYRValue statsPanel = modsInfo;//Binds::CallBuiltinA("instance_nearest", { 32.0,32.0,double(LHObjectEnum::o_camp_statistik) });
             YYRValue origsurf = Binds::CallBuiltinA("variable_instance_get", { statsPanel, "statsurf" });
-            Binds::CallBuiltinA("variable_instance_set", { statsPanel, "text","Playing modded" });
+            Binds::CallBuiltinA("variable_instance_set", { statsPanel, "text","Manage Mods" });
             if ((int)origsurf != lastSurf)
             {
                 YYRValue exists = Binds::CallBuiltinA("surface_exists", { origsurf });
@@ -139,11 +144,25 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
                         YYRValue surfw = Binds::CallBuiltinA("surface_get_width", { origsurf });
                         YYRValue surfh = Binds::CallBuiltinA("surface_get_height", { origsurf });
 
-                        std::string text = "Registered Mods:\n";
-                        
+                        std::string text = "Activate or deactivate mods here!\nToggle mods by pressing [F11]\nand input the mod runtime ID\n\nRegistered Mods:\n";
+                        int counter = 0;
                         for (auto const& mod : gRegisteredPlugins)
                         {
-                            text += mod.first + "\n";
+                            text += mod.first + " : " + std::to_string(counter) + "\n";
+                        }
+                        if (gRegisteredPlugins.size() == 0)
+                        {
+                            text += "*No mods active\n";
+                        }
+                        counter = 0;
+                        text += "\nDeactivated Mods:\n";
+                        for (auto const& mod : blacklistPluginNames)
+                        {
+                            text += mod + " : " + std::to_string(counter)+"\n";
+                        }
+                        if (blacklistPluginNames.size() == 0)
+                        {
+                            text += "*No mods deactivated\n";
                         }
                         text = text.substr(0, text.size() - 1);
 
@@ -233,7 +252,46 @@ DllExport YYTKStatus PluginEntry(
     return YYTK_OK; // Successful PluginEntry.
 }
 
+void ShowModToggleDialog()
+{
+    // Show a dialog asking if you want to activate or deactivate a mod
+    YYRValue res = Binds::CallBuiltinA("show_question", {"Do you want to activate (yes) or deactivate (no) a mod?"});
+    int idx = 0;
+   
+    if ((bool)res)
+    {// activate a mod
+        idx = (double)Binds::CallBuiltinA("get_integer", { "Index of mod to activate", 0.0 });
+        if(idx < 0 || idx >= blacklistPluginNames.size())
+        {
+            Misc::Print("Invalid index", CLR_RED);
+            return;
+        }
+        // remove from blacklist
+        blacklistPluginNames.erase(blacklistPluginNames.begin() + idx);
+        // write new blacklist to file
+        Filesys::WriteToFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist, blacklistPluginNames);
+    }
+    else
+    {
+        idx = (double)Binds::CallBuiltinA("get_integer", { "Index of mod to disable", 0.0 });
+        if (idx < 0 || idx >= gRegisteredPlugins.size())
+        {
+            std::string errtext = "Invalid index: " + std::to_string(idx) + " Max index: " + std::to_string(gRegisteredPlugins.size());
+            Misc::Print(errtext, CLR_RED);
 
+            return;
+        }
+        // add to blacklist
+        // first, iterate through map and add to the vector of strings
+        std::vector<std::string> keys;
+        for (auto const& mod : gRegisteredPlugins)
+        {
+            keys.push_back(mod.first);
+        }
+        blacklistPluginNames.push_back(keys[idx]);
+        Filesys::WriteToFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist, blacklistPluginNames);
+    }
+}
 
 DWORD WINAPI KeyControls(HINSTANCE hModule)
 {
@@ -244,12 +302,24 @@ DWORD WINAPI KeyControls(HINSTANCE hModule)
             if(!gReady)continue;
 
             // List all registered mods
-            PrintRegisteredMods();
+            PrintRegisteredMods();            
+        }
+        if (GetAsyncKeyState(VK_F11))
+        {
+            if (!gReady)continue;
+
+            // List all registered mods
+            // check if stats window exists
+            if ((bool)Binds::CallBuiltinA("instance_exists", { modsInfo }) == true)
+            {
+                ShowModToggleDialog();
+            }
         }
         Sleep(100);
 
     }
 }
+
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
