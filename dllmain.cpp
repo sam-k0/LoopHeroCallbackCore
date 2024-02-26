@@ -18,12 +18,14 @@ YYRValue modsInfo = -4.;
 bool buttonHovered = false;
 int lastSurf = -1;
 bool active = false;
+std::tuple<double, double, double, double> materialHoverBounds = std::make_tuple(9999, 9999, 0, 0);
+
 std::vector<std::string> blacklistPluginNames;
 
 void ShowWelcomeMessage()
 {
     // Show a welcome message with multiple lines, but only as a single message
-    Misc::Print("--------------------------\nCallback Core is loaded.\nPress F12 to list mods that registered callbacks.\n--------------------------", CLR_YELLOW);
+    Misc::Print("----------\nCallback Core is loaded.\nPress F12 to list mods that registered callbacks.\n--------------------------", CLR_YELLOW);
 
 }
 // Unload
@@ -32,6 +34,42 @@ YYTKStatus PluginUnload()
     PmRemoveCallback(callbackAttr);
 
     return YYTK_OK;
+}
+
+
+void findMaterialBorders()
+{
+    // iterate over all instances of o_camp_resource_main
+    YYRValue instNum = Binds::CallBuiltinA("instance_number", { double(LHObjectEnum::o_camp_resource_main) });
+    for (int i = 0; i < (int)instNum; ++i)
+    {
+        YYRValue currentInstance = Binds::CallBuiltinA("instance_find", { double(LHObjectEnum::o_camp_resource_main), double(i) });
+        // get x and y
+        double x = Binds::CallBuiltin("variable_instance_get", nullptr, nullptr, { currentInstance, "x" });
+        double y = Binds::CallBuiltin("variable_instance_get", nullptr, nullptr, { currentInstance, "y" });
+        //PrintMessage(CLR_RED, "Bounds: %f %f , %f", x, y, currentInstance);
+
+        YYRValue spr = Binds::CallBuiltinA("variable_instance_get", { currentInstance, "sprite_index" });
+        double w, h;
+        Assets::GetSpriteDimensions(spr, w, h);
+
+        // check if bounds are uninitialized
+        {
+            // in tuple, first two are top left corner, second two are bottom right corner
+            // Check if the current instance's x and y are smaller than the top left corner or bigger than the bottom right corner
+            if (x < std::get<0>(materialHoverBounds) || y < std::get<1>(materialHoverBounds))
+            {
+                // replace top left corner
+                materialHoverBounds = std::make_tuple(x, y, std::get<2>(materialHoverBounds), std::get<3>(materialHoverBounds));
+            }
+            // check if the current instance's x and y are bigger than the bottom right corner
+            if (x + w / 2 > std::get<2>(materialHoverBounds) || y + h / 2 > std::get<3>(materialHoverBounds))
+            {
+                // replace bottom right corner
+                materialHoverBounds = std::make_tuple(std::get<0>(materialHoverBounds), std::get<1>(materialHoverBounds), x + w / 2, y + h / 2);
+            }
+        }
+    }
 }
 
 YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
@@ -45,6 +83,9 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 
     if (!codeObj->i_pName)
         return YYTK_INVALIDARG;
+
+
+    
 
 #pragma region ModManager
     // Mouse events
@@ -64,44 +105,53 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
             buttonHovered = false;
         }
     }
-    
-    // Event for entering the camp
+
+    // Event for entering the camp 
     if (Misc::StringHasSubstr(codeObj->i_pName, "gml_Room_rm_camp_Create"))
     {
         // create button
-        modsbutton = Binds::CallBuiltinA("instance_create_depth", { 531.,170.,-10009.,(double)LHObjectEnum::o_base_button });
+        modsbutton = Binds::CallBuiltinA("instance_create_depth", { -999.,170.,-200.,(double)LHObjectEnum::o_base_button });
         Binds::CallBuiltinA("variable_instance_set", { modsbutton, "sprite_index", (double)LHSpriteEnum::s_camp_buildingb });
 
-     
         PrintMessage(CLR_RED, "Created btn %d", (int)modsbutton);
         // load blacklist
         blacklistPluginNames = Filesys::ReadFromFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist);
     }
 
-    if (Misc::StringHasSubstr(codeObj->i_pName, "o_camp_game_button_Draw"))
+    if (Misc::StringHasSubstr(codeObj->i_pName, "o_menu_button_Draw_0"))//
     {
+        if ((bool)Binds::CallBuiltinA("instance_exists", { modsbutton }))
+        {
+            //double iid = Binds::CallBuiltinA("variable_instance_get", { double(selfInst->i_spriteindex), "id" });
+            double first = Binds::CallBuiltinA("instance_find", { (double)LHObjectEnum::o_menu_button, 0. });
+            if (double(selfInst->i_spriteindex) == first)
+            {
+                // draw self (button)
+                double x = Binds::CallBuiltinA("variable_instance_get", { modsbutton, "x" });
+                double y = Binds::CallBuiltinA("variable_instance_get", { modsbutton, "y" });
+                YYRValue spr = Binds::CallBuiltinA("variable_instance_get", { modsbutton , "sprite_index" });
+                YYRValue subimg = Binds::CallBuiltinA("variable_instance_get", { modsbutton, "image_index" });
 
-        // Draw text to button
-        YYRValue halign = Binds::CallBuiltinA("draw_get_halign", {  });
-        YYRValue font = Binds::CallBuiltinA("draw_get_font", {});
-        YYRValue depth = Binds::CallBuiltinA("variable_instance_get", { double(selfInst->i_spriteindex), "depth" });
-        //Misc::Print((int)depth);
-        Binds::CallBuiltinA("draw_set_color", { 16777215.0 });
-        Binds::CallBuiltinA("draw_set_halign", { 1.0 });
+                Binds::CallBuiltinA("draw_sprite", {spr, subimg, x, y});
 
-        //Binds::CallBuiltinA("draw_set_font", { 1.0 });
+                // Draw text to button
+                YYRValue halign = Binds::CallBuiltinA("draw_get_halign", {  });
+                YYRValue valign = Binds::CallBuiltinA("draw_get_valign", {  });
+                YYRValue font = Binds::CallBuiltinA("draw_get_font", {});
+                YYRValue depth = Binds::CallBuiltinA("variable_instance_get", { double(selfInst->i_spriteindex), "depth" });
 
-        double x = Binds::CallBuiltinA("variable_instance_get", { modsbutton, "x" });
-        double y = Binds::CallBuiltinA("variable_instance_get", { modsbutton, "y" });
-        YYRValue spr = Binds::CallBuiltinA("variable_instance_get", { modsbutton , "sprite_index" });
-        double w, h;
-        Assets::GetSpriteDimensions(spr, w, h);
+                Binds::CallBuiltinA("draw_set_color", { 16777215.0 });
+                Binds::CallBuiltinA("draw_set_halign", { 1.0 });
+                Binds::CallBuiltinA("draw_set_valign", { 1.0 });
 
-
-        Binds::CallBuiltinA("draw_text_transformed", { x + w / 2,y + h / 2.3,"Mods",.5,.5,0.0 });
-
-        Binds::CallBuiltinA("draw_set_halign", { halign });
-        Binds::CallBuiltinA("draw_set_font", { font });
+                double w, h;
+                Assets::GetSpriteDimensions(spr, w, h);
+                Binds::CallBuiltinA("draw_text_transformed", { x + w / 2,y + h / 2.3,"Mods",.5,.5,0.0 });
+                Binds::CallBuiltinA("draw_set_halign", { halign });
+                Binds::CallBuiltinA("draw_set_valign", { valign });
+                Binds::CallBuiltinA("draw_set_font", { font });
+            }
+        }
     }
 
     if (Misc::StringHasSubstr(codeObj->i_pName, "o_base_button_Mouse_56"))
@@ -119,6 +169,32 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
             }
         }
     }
+
+    if (Misc::StringHasSubstr(codeObj->i_pName, "menu") && (Misc::StringHasSubstr(codeObj->i_pName, "Draw_")))
+    {
+
+        //PrintMessage(CLR_DEFAULT, "%s SpriteID: %d", codeObj->i_pName, selfInst->i_spriteindex);
+
+    }
+
+    if (Misc::StringHasSubstr(codeObj->i_pName, "o_menu_Step_0"))
+    {
+        if ((bool)Binds::CallBuiltinA("instance_exists", { modsbutton }))
+        {
+            // Find a ui button
+            YYRValue anchorButton = Binds::CallBuiltinA("instance_find", { (double)LHObjectEnum::o_menu_TW, 0.0});
+            if ((double)anchorButton != INSTANCE_NOONE)
+            {
+                YYRValue tbx = Binds::CallBuiltinA("variable_instance_get", { anchorButton , "x"});
+                YYRValue tby = Binds::CallBuiltinA("variable_instance_get", { anchorButton , "y" });
+
+                // Set modsbutton pos to that + offs
+                Binds::CallBuiltinA("variable_instance_set", { modsbutton, "x", 480. + 60 });
+                Binds::CallBuiltinA("variable_instance_set", { modsbutton, "y", (double)tby + 16 });
+            }
+        }
+    }
+
 
     if (Misc::StringHasSubstr(codeObj->i_pName, "statistik_Draw_0"))
     {
@@ -149,6 +225,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
                         for (auto const& mod : gRegisteredPlugins)
                         {
                             text += mod.first + " : " + std::to_string(counter) + "\n";
+                            counter++;
                         }
                         if (gRegisteredPlugins.size() == 0)
                         {
@@ -159,6 +236,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
                         for (auto const& mod : blacklistPluginNames)
                         {
                             text += mod + " : " + std::to_string(counter)+"\n";
+                            counter++;
                         }
                         if (blacklistPluginNames.size() == 0)
                         {
@@ -254,14 +332,34 @@ DllExport YYTKStatus PluginEntry(
 
 void ShowModToggleDialog()
 {
-    // Show a dialog asking if you want to activate or deactivate a mod
-    YYRValue res = Binds::CallBuiltinA("show_question", {"Do you want to activate (yes) or deactivate (no) a mod?"});
     int idx = 0;
-   
-    if ((bool)res)
-    {// activate a mod
-        idx = (double)Binds::CallBuiltinA("get_integer", { "Index of mod to activate", 0.0 });
-        if(idx < 0 || idx >= blacklistPluginNames.size())
+    std::vector<std::string> keys;
+    int res = 0;
+    // Show a dialog asking if you want to activate or deactivate a mod
+    HWND hwnd = NULL;
+    LPCWSTR lpText = L"Press [Yes] if you want to activate a mod, [No] if you want to deactivate a mod, [Cancel] to do nothing.";
+    LPCWSTR lpCaption = L"Manage mods";
+    UINT uType = MB_YESNOCANCEL | MB_ICONINFORMATION;
+    int nResult = MessageBox(hwnd, lpText, lpCaption, uType);
+
+    switch (nResult) {
+    case IDYES:
+        res = 1;
+        break;
+    case IDNO:
+        res = 2;
+        break;
+    case IDCANCEL:
+        // cancel
+        break;
+    default:
+        break;
+    }
+
+    if (res == 1)
+    {
+        idx = (double)Binds::CallBuiltinA("get_integer", { "Index of mod to activate", -1.0 });
+        if (idx < 0 || idx >= blacklistPluginNames.size())
         {
             Misc::Print("Invalid index", CLR_RED);
             return;
@@ -271,9 +369,9 @@ void ShowModToggleDialog()
         // write new blacklist to file
         Filesys::WriteToFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist, blacklistPluginNames);
     }
-    else
+    else if(res == 2)
     {
-        idx = (double)Binds::CallBuiltinA("get_integer", { "Index of mod to disable", 0.0 });
+        idx = (double)Binds::CallBuiltinA("get_integer", { "Index of mod to disable", -1.0 });
         if (idx < 0 || idx >= gRegisteredPlugins.size())
         {
             std::string errtext = "Invalid index: " + std::to_string(idx) + " Max index: " + std::to_string(gRegisteredPlugins.size());
@@ -283,7 +381,7 @@ void ShowModToggleDialog()
         }
         // add to blacklist
         // first, iterate through map and add to the vector of strings
-        std::vector<std::string> keys;
+
         for (auto const& mod : gRegisteredPlugins)
         {
             keys.push_back(mod.first);
@@ -291,7 +389,15 @@ void ShowModToggleDialog()
         blacklistPluginNames.push_back(keys[idx]);
         Filesys::WriteToFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist, blacklistPluginNames);
     }
+
+
+    // Refresh lists
+    blacklistPluginNames = Filesys::ReadFromFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist);
+
+
+
 }
+
 
 DWORD WINAPI KeyControls(HINSTANCE hModule)
 {
