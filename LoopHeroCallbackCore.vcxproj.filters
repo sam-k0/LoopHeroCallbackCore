@@ -122,5 +122,8 @@
     <ClInclude Include="ModuleManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ExposedFunctions.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

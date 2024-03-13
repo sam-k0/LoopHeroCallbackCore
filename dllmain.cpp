@@ -7,6 +7,7 @@
 #include "LHObjects.h"
 #include "LHSprites.h"
 #include "Assets.h"
+#include "ExposedFunctions.h"
 // Plugin functionality
 #include <fstream>
 #include <iterator>
@@ -326,7 +327,12 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     };
 
-    Misc::Print("Exported functions correctly", CLR_GREEN);
+    if (Exposed::ExposeFunctions(pAttr) != YYTK_OK)
+    {
+        Misc::Print("Failed to ExposeFunctions correctly! Plugins using the Exposed Functions API will probably crash.", CLR_RED);
+    }
+
+    Misc::Print("Exported (base) functions correctly", CLR_GREEN);
     return YYTK_OK; // Successful PluginEntry.
 }
 

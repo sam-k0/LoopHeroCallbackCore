@@ -164,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Assets.h" />
+    <ClInclude Include="ExposedFunctions.h" />
     <ClInclude Include="Filesystem.h" />
     <ClInclude Include="LHObjects.h" />
     <ClInclude Include="LHSprites.h" />
