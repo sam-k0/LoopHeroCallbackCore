@@ -269,10 +269,21 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 
 #pragma endregion
 
+    // call registered patches
+
+    for (Exposed::PrePostPatchCallback ThisPrePatch : Exposed::PrePatchCallbacks)
+    {
+        ThisPrePatch(codeEvent, nullptr);
+    }
 
     // Original event
     codeEvent->Call(selfInst, otherInst, codeObj, std::get<3>(codeEvent->Arguments()), std::get<4>(codeEvent->Arguments()));
    
+    for (Exposed::PrePostPatchCallback ThisPostPatch : Exposed::PostPatchCallbacks)
+    {
+        ThisPostPatch(codeEvent, nullptr);
+    }
+
     return YYTK_OK;
 }
 
