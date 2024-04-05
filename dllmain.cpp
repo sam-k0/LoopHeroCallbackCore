@@ -114,7 +114,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         modsbutton = Binds::CallBuiltinA("instance_create_depth", { -999.,170.,-200.,(double)LHObjectEnum::o_base_button });
         Binds::CallBuiltinA("variable_instance_set", { modsbutton, "sprite_index", (double)LHSpriteEnum::s_camp_buildingb });
 
-        PrintMessage(CLR_RED, "Created btn %d", (int)modsbutton);
+        PrintMessage(CLR_RED, "Created mod management button with oID: %d", (int)modsbutton);
         // load blacklist
         blacklistPluginNames = Filesys::ReadFromFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist);
     }
@@ -161,7 +161,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         {
             if ((bool)Binds::CallBuiltinA("instance_exists", { modsInfo }) == false && !(bool)Binds::CallBuiltinA("instance_exists", { (double)LHObjectEnum::o_camp_statistik }))
             {
-                Misc::Print("created");
+                //Misc::Print("created");
                 modsInfo = Binds::CallBuiltinA("instance_create_depth", { 32.,32.,-999.,double(LHObjectEnum::o_camp_statistik) });
                 YYRValue scrollerStruct = Binds::CallBuiltinA("variable_instance_get", { modsInfo, "scroller" });
                 Binds::CallBuiltinA("variable_struct_set", { scrollerStruct, "active", 0.0 }); // Dont allow scrolling
