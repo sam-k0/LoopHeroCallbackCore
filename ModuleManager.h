@@ -8,7 +8,6 @@
 std::map<std::string, YYTKPlugin*> gRegisteredPlugins;
 bool gReady = false;
 const std::string gModBlacklist = "DisabledMods.meta";
-
 bool Ready() // Plugins call this to see if the core is present
 {
     return gReady;

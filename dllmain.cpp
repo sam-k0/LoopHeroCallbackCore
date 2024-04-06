@@ -271,7 +271,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 
     // call registered patches
 
-    for (Exposed::PrePostPatchCallback ThisPrePatch : Exposed::PrePatchCallbacks)
+    for (PrePostPatchCallback ThisPrePatch : PrePatchCallbacks)
     {
         ThisPrePatch(codeEvent, nullptr);
     }
@@ -279,7 +279,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
     // Original event
     codeEvent->Call(selfInst, otherInst, codeObj, std::get<3>(codeEvent->Arguments()), std::get<4>(codeEvent->Arguments()));
    
-    for (Exposed::PrePostPatchCallback ThisPostPatch : Exposed::PostPatchCallbacks)
+    for (PrePostPatchCallback ThisPostPatch : PostPatchCallbacks)
     {
         ThisPostPatch(codeEvent, nullptr);
     }
@@ -338,12 +338,27 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     };
 
-    if (Exposed::ExposeFunctions(pAttr) != YYTK_OK)
+    if (PmSetExported(pAttr, "API_InstallPostPatch", InstallPostPatch) != YYTK_OK)
     {
-        Misc::Print("Failed to ExposeFunctions correctly! Plugins using the Exposed Functions API will probably crash.", CLR_RED);
-    }
+        Misc::Print("Failed to PmSetExported API_InstallPostPatch()", CLR_RED);
+        return YYTK_FAIL;
+    };
 
-    Misc::Print("Exported (base) functions correctly", CLR_GREEN);
+    if (PmSetExported(pAttr, "API_GetWindowHandle", GetWindowHandle) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported API_GetWindowHandle()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    if (PmSetExported(pAttr, "API_InstallPrePatch", InstallPrePatch) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported API_InstallPrePatch()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+
+
+    Misc::Print("Exported functions correctly", CLR_GREEN);
     return YYTK_OK; // Successful PluginEntry.
 }
 
