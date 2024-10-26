@@ -24,6 +24,11 @@ namespace Misc {
         PrintMessage(c, (gPluginName + ": " + s).c_str());
     }
 
+    void PrintDbg(std::string s, const char* func, int line, Color c)
+    {
+        PrintMessage(c, (gPluginName + ": " + s + " ("+std::string(func)+":"+std::to_string(line)+")").c_str());
+    }
+
     bool VectorContains(std::string find, std::vector<std::string>* v)
     {
         if (std::find(v->begin(), v->end(), find) != v->end())
@@ -116,6 +121,19 @@ namespace Misc {
         ret.pop_back();
 
         return ret;
+    }
+
+    void PrintArray(YYRValue var, Color c = Color::CLR_DEFAULT)
+    {
+        YYRValue len;
+        YYRValue item;
+        CallBuiltin(len, "array_length_1d", nullptr, nullptr, { var });
+
+        for (int i = 0; i < (int)len; i++)
+        {
+            CallBuiltin(item, "array_get", nullptr, nullptr, { var, (double)i });
+            Misc::Print(static_cast<const char*>(item), c);
+        }
     }
 }
 

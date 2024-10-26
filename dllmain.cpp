@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <chrono>
 #define _CRT_SECURE_NO_WARNINGS
 
 YYRValue modsbutton = -4.0;
@@ -20,13 +21,15 @@ bool buttonHovered = false;
 int lastSurf = -1;
 bool active = false;
 std::tuple<double, double, double, double> materialHoverBounds = std::make_tuple(9999, 9999, 0, 0);
+// Clock
+auto lastTime = std::chrono::high_resolution_clock::now();
 
 std::vector<std::string> blacklistPluginNames;
 
 void ShowWelcomeMessage()
 {
     // Show a welcome message with multiple lines, but only as a single message
-    Misc::Print("----------\nCallback Core is loaded.\nPress F12 to list mods that registered callbacks.\n--------------------------", CLR_YELLOW);
+    Misc::Print("Press F12 to list registered mods.", CLR_GOLD);
 
 }
 // Unload
@@ -91,22 +94,18 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 #pragma region ModManager
     // Mouse events
     
-    if (Misc::StringHasSubstr(codeObj->i_pName, "o_base_button_Mouse_10")) // Enter
+    if (selfInst->i_spriteindex == (int)modsbutton)
     {
-        if (selfInst->i_spriteindex == (int)modsbutton)
+        if (Misc::StringHasSubstr(codeObj->i_pName, "o_base_button_Mouse_10")) // Enter
         {
             buttonHovered = true;
         }
-    }
-
-    if (Misc::StringHasSubstr(codeObj->i_pName, "o_base_button_Mouse_11")) //Leave
-    {
-        if (selfInst->i_spriteindex == (int)modsbutton)
+        if (Misc::StringHasSubstr(codeObj->i_pName, "o_base_button_Mouse_11")) //Leave
         {
             buttonHovered = false;
         }
     }
-
+   
     // Event for entering the camp 
     if (Misc::StringHasSubstr(codeObj->i_pName, "gml_Room_rm_camp_Create"))
     {
@@ -119,11 +118,12 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         blacklistPluginNames = Filesys::ReadFromFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist);
     }
 
+
+    // draw event?
     if (Misc::StringHasSubstr(codeObj->i_pName, "o_menu_button_Draw_0"))//
     {
         if ((bool)Binds::CallBuiltinA("instance_exists", { modsbutton }))
         {
-            //double iid = Binds::CallBuiltinA("variable_instance_get", { double(selfInst->i_spriteindex), "id" });
             double first = Binds::CallBuiltinA("instance_find", { (double)LHObjectEnum::o_menu_button, 0. });
             if (double(selfInst->i_spriteindex) == first)
             {
@@ -171,12 +171,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         }
     }
 
-    if (Misc::StringHasSubstr(codeObj->i_pName, "menu") && (Misc::StringHasSubstr(codeObj->i_pName, "Draw_")))
-    {
-
-        //PrintMessage(CLR_DEFAULT, "%s SpriteID: %d", codeObj->i_pName, selfInst->i_spriteindex);
-
-    }
+   
 
     if (Misc::StringHasSubstr(codeObj->i_pName, "o_menu_Step_0"))
     {
@@ -299,7 +294,7 @@ DllExport YYTKStatus PluginEntry(
         // waiting for yytk
     }
 
-    Misc::Print("Exporting function...", CLR_YELLOW);
+    //Misc::Print("Exporting function...", CLR_YELLOW);
     gThisPlugin = PluginObject;
     gThisPlugin->PluginUnload = PluginUnload;
 
@@ -319,11 +314,7 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     }
 
-    if (PmSetExported(pAttr, "CoreReady", Ready) != YYTK_OK)
-    {
-        Misc::Print("Failed to PmSetExported Ready()", CLR_RED);
-        return YYTK_FAIL;
-    };
+    
 
     // Export RegisterModule and UnregisterModule
     if (PmSetExported(pAttr, "RegisterModule", RegisterModule) != YYTK_OK)
@@ -356,9 +347,14 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     };
 
+    if (PmSetExported(pAttr, "CoreReady", Ready) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported Ready()", CLR_RED);
+        return YYTK_FAIL;
+    };
 
+    Misc::PrintDbg("Exported functions correctly. Mods can load these now.", (__FUNCTION__), __LINE__, CLR_GOLD);
 
-    Misc::Print("Exported functions correctly", CLR_GREEN);
     return YYTK_OK; // Successful PluginEntry.
 }
 
@@ -425,10 +421,15 @@ void ShowModToggleDialog()
 
     // Refresh lists
     blacklistPluginNames = Filesys::ReadFromFile(Filesys::GetCurrentDir() + "\\" + gModBlacklist);
-
-
-
 }
+
+
+// Export raw pointers using dllexport
+DllExport int rPmGetExported(const char* szRoutineName, void*& pfnOutRoutine)
+{
+	return PmGetExported(szRoutineName, pfnOutRoutine);
+}
+
 
 
 DWORD WINAPI KeyControls(HINSTANCE hModule)
