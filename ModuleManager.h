@@ -44,12 +44,13 @@ bool RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins ca
     // Check if the module is already registered
     if (gRegisteredPlugins.find(modName) != gRegisteredPlugins.end())
     {
-        Misc::Print("Module already registered", CLR_RED);
+        PrintMessage(CLR_RED,"Mod %s already registered!", modName);
         return false;
     }
     // add to map
     gRegisteredPlugins.insert(std::pair<std::string, YYTKPlugin*>(modName, pluginHandle));
-    Misc::Print("Registered callbacks for mod: " + modName, CLR_GREEN);
+
+	PrintMessage(CLR_GOLD,"Registered mod: %s", modName);
     return true;
     
 }

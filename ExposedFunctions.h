@@ -9,13 +9,13 @@ std::vector<PrePostPatchCallback> PostPatchCallbacks;
 
 void InstallPrePatch(PrePostPatchCallback function)
 {
-    Misc::Print("Installing PrePatch Method");
+    //Misc::Print("Installing PrePatch Method");
     PrePatchCallbacks.push_back(function);
 }
 
 void InstallPostPatch(PrePostPatchCallback function)
 {
-    Misc::Print("Installing PostPatch Method");
+    //Misc::Print("Installing PostPatch Method");
     PostPatchCallbacks.push_back(function);
 }
 
