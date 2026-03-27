@@ -11,7 +11,8 @@
 // Plugin functionality
 #include <fstream>
 #include <iterator>
-#include <map>>
+#include <map>
+#include <format>
 #define _CRT_SECURE_NO_WARNINGS
 
 
@@ -129,6 +130,10 @@ DllExport YYTKStatus PluginEntry(
 
     Misc::PrintDbg("Exported functions correctly. Mods can load these now.", (__FUNCTION__), __LINE__, CLR_GOLD);
 
+    // set version to modded
+    double gv = static_cast<double>(Binds::CallBuiltinA("variable_global_get", {"game_version"}));
+    Binds::CallBuiltinA("variable_global_set", { "game_version",std::format("{} modded", gv)});
+
     return YYTK_OK; // Successful PluginEntry.
 }
 
@@ -145,7 +150,7 @@ DWORD WINAPI KeyControls(HINSTANCE hModule)
 {
     while(true)
     {
-        if (GetAsyncKeyState(VK_F12))
+        if (GetAsyncKeyState(VK_F12) & 1)
         {   
             if(!gReady)continue;
 
@@ -166,7 +171,7 @@ BOOL APIENTRY DllMain( HMODULE hModule,
     {
     case DLL_PROCESS_ATTACH:
         // Start a thread to listen for button presses
-        CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)KeyControls, NULL, 0, NULL);
+        CloseHandle(CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)KeyControls, NULL, 0, NULL));
     case DLL_THREAD_ATTACH:
     case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
