@@ -134,6 +134,13 @@ DllExport YYTKStatus PluginEntry(
     double gv = static_cast<double>(Binds::CallBuiltinA("variable_global_get", {"game_version"}));
     Binds::CallBuiltinA("variable_global_set", { "game_version",std::format("{} modded", gv)});
 
+
+    // show mods popup
+    double modsinfo = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", { 270.0,480.0/2, 0.0, (double)LHObjectEnum::o_menu_message  }));
+    Binds::CallBuiltinA("variable_instance_set",{modsinfo, "text_message", "YYTK and CallbackCore are successfully initialized!\n\nPlease be aware that using mods may cause unexpected crashes.\n\nNevertheless, enjoy!"});
+    Binds::CallBuiltinA("variable_instance_set", { modsinfo, "text", "Understood" });
+
+
     return YYTK_OK; // Successful PluginEntry.
 }
 
