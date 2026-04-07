@@ -166,6 +166,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Assets.h" />
+    <ClInclude Include="CallbackCore.h" />
     <ClInclude Include="ExposedFunctions.h" />
     <ClInclude Include="Filesystem.h" />
     <ClInclude Include="LHObjects.h" />

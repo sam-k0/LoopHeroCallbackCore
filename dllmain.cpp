@@ -8,6 +8,7 @@
 #include "LHSprites.h"
 #include "Assets.h"
 #include "ExposedFunctions.h"
+#include "CallbackCore.h"
 // Plugin functionality
 #include <fstream>
 #include <iterator>
@@ -41,17 +42,33 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         return YYTK_INVALIDARG;
 
     // call registered patches
+    bool callOriginal = true;
+    CallbackCoreAttributes attribs = CallbackCoreAttributes(OriginalCall::CALLED); // default to called
+
     for (PrePostPatchCallback ThisPrePatch : PrePatchCallbacks)
     {
-        ThisPrePatch(codeEvent, nullptr);
+        if (ThisPrePatch(codeEvent, (void*)&attribs) == YYTK_DONTCALL)
+        {
+            callOriginal = false;
+        }
     }
+    
+    attribs.call = OriginalCall::CALLED;
 
     // Original event
-    codeEvent->Call(selfInst, otherInst, codeObj, std::get<3>(codeEvent->Arguments()), std::get<4>(codeEvent->Arguments()));
+    if (callOriginal)
+    {
+        codeEvent->Call(selfInst, otherInst, codeObj, std::get<3>(codeEvent->Arguments()), std::get<4>(codeEvent->Arguments()));
+    }
+    else
+    {
+        codeEvent->Cancel(true);
+        attribs.call = OriginalCall::CANCELLED;
+    }
    
     for (PrePostPatchCallback ThisPostPatch : PostPatchCallbacks)
     {
-        ThisPostPatch(codeEvent, nullptr);
+        ThisPostPatch(codeEvent, (void*)&attribs);
     }
 
     return YYTK_OK;
@@ -128,7 +145,7 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     };
 
-    Misc::PrintDbg("Exported functions correctly. Mods can load these now.", (__FUNCTION__), __LINE__, CLR_GOLD);
+    Misc::Print("Exported functions correctly. Mods can load these now.", CLR_GOLD);
 
     // set version to modded
     double gv = static_cast<double>(Binds::CallBuiltinA("variable_global_get", {"game_version"}));

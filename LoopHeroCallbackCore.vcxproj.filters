@@ -125,5 +125,8 @@
     <ClInclude Include="ExposedFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CallbackCore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
