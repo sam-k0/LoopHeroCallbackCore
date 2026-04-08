@@ -93,7 +93,8 @@ DllExport YYTKStatus PluginEntry(
     PluginAttributes_t* pluginAttributes = nullptr;
     if (PmGetPluginAttributes(gThisPlugin, pluginAttributes) == YYTK_OK)
     {
-        PmCreateCallback(pluginAttributes, callbackAttr, reinterpret_cast<FNEventHandler>(ExecuteCodeCallback), EVT_CODE_EXECUTE, nullptr);
+        //PmCreateCallback(pluginAttributes, callbackAttr, reinterpret_cast<FNEventHandler>(ExecuteCodeCallback), EVT_CODE_EXECUTE, nullptr);
+        PmCreateCallbackEx(pluginAttributes, 9999, reinterpret_cast<FNEventHandler>(ExecuteCodeCallback), EVT_CODE_EXECUTE, nullptr, callbackAttr);
     }
 
     gReady = true;
