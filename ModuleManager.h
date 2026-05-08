@@ -81,3 +81,18 @@ void PrintRegisteredMods()
     mods = mods.substr(0, mods.size() - 1);
     Misc::Print(mods, CLR_YELLOW);
 }
+
+int GetRegisteredPluginCount()
+{
+    return gRegisteredPlugins.size();
+}
+
+const char* GetRegisteredPluginName(int index)
+{
+    if (index < 0 || index >= gRegisteredPlugins.size())
+    {
+        return "";
+	}
+
+	return gRegisteredPlugins.at(std::next(gRegisteredPlugins.begin(), index)->first)->PluginEntry ? std::next(gRegisteredPlugins.begin(), index)->first.c_str() : "";
+}

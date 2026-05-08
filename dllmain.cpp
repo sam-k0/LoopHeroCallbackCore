@@ -74,7 +74,6 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
     return YYTK_OK;
 }
 
-
 // Entry
 DllExport YYTKStatus PluginEntry(
     YYTKPlugin* PluginObject // A pointer to the dedicated plugin object
@@ -109,7 +108,7 @@ DllExport YYTKStatus PluginEntry(
 
     
 
-    // Export RegisterModule and UnregisterModule
+	// Export shared functions for mods to use, such as registering themselves and installing patches
     if (PmSetExported(pAttr, "RegisterModule", RegisterModule) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported RegisterModule()", CLR_RED);
@@ -119,6 +118,12 @@ DllExport YYTKStatus PluginEntry(
     if (PmSetExported(pAttr, "UnregisterModule", UnregisterModule) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported UnregisterModule()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    if (PmSetExported(pAttr, "CoreReady", Ready) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported Ready()", CLR_RED);
         return YYTK_FAIL;
     };
 
@@ -140,9 +145,15 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "CoreReady", Ready) != YYTK_OK)
+    if (PmSetExported(pAttr, "API_GetRegisteredPluginCount", GetRegisteredPluginCount) != YYTK_OK)
     {
-        Misc::Print("Failed to PmSetExported Ready()", CLR_RED);
+        Misc::Print("Failed to PmSetExported API_GetRegisteredPluginCount()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    if (PmSetExported(pAttr, "API_GetRegisteredPluginName", GetRegisteredPluginName) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported API_GetRegisteredPluginName()", CLR_RED);
         return YYTK_FAIL;
     };
 
