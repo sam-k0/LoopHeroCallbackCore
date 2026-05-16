@@ -3,43 +3,17 @@
 #include <iterator>
 #include <map>
 #include "Filesystem.h"
-#include "MyHelper.h"
+#include "MyPlugin.h"
 
-std::map<std::string, YYTKPlugin*> gRegisteredPlugins;
-bool gReady = false;
-const std::string gModBlacklist = "DisabledMods.meta";
-bool Ready() // Plugins call this to see if the core is present
+static std::map<std::string, YYTKPlugin*> gRegisteredPlugins;
+static bool gModuleManagerReady = false;
+
+bool API_ModuleManagerReadyCheck() // Plugins call this to see if the core is present
 {
-    return gReady;
+    return gModuleManagerReady;
 }
 
-// Checks if the module is allowed or not
-bool ModuleAllowed(std::string modName)
-{  
-    std::string blacklistedModsPath = Filesys::GetCurrentDir() + "\\" + gModBlacklist;
-    if (Filesys::FileExists(blacklistedModsPath))
-    {
-        std::vector<std::string> blacklistedModsNames = Filesys::ReadFromFile(blacklistedModsPath);
-        if (Misc::VectorContains(modName, &blacklistedModsNames)) // Blacklisted
-        {
-            return false;
-        }
-        else
-        {
-            return true;
-        }
-    }
-    else
-    {
-        Misc::Print("Creating Mods CFG", CLR_GOLD);
-        std::ofstream file(blacklistedModsPath); // Create file without specifying content
-        file.close();
-        return true;
-    }
-    
-}
-
-bool RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins call this to register themselves to the core
+bool API_RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins call this to register themselves to the core
 {
     // Check if the module is already registered
     if (gRegisteredPlugins.find(modName) != gRegisteredPlugins.end())
@@ -55,7 +29,7 @@ bool RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugins ca
     
 }
 
-bool UnregisterModule(std::string modName) // Plugins call this to say goodbye
+bool API_UnregisterModule(std::string modName) // Plugins call this to say goodbye
 {
     // Check if the module is registered at all
     if (gRegisteredPlugins.find(modName) == gRegisteredPlugins.end())
@@ -82,12 +56,12 @@ void PrintRegisteredMods()
     Misc::Print(mods, CLR_YELLOW);
 }
 
-int GetRegisteredPluginCount()
+int API_GetRegisteredPluginCount()
 {
     return gRegisteredPlugins.size();
 }
 
-const char* GetRegisteredPluginName(int index)
+const char* API_GetRegisteredPluginName(int index)
 {
     if (index < 0 || index >= gRegisteredPlugins.size())
     {
@@ -95,4 +69,17 @@ const char* GetRegisteredPluginName(int index)
 	}
 
 	return gRegisteredPlugins.at(std::next(gRegisteredPlugins.begin(), index)->first)->PluginEntry ? std::next(gRegisteredPlugins.begin(), index)->first.c_str() : "";
+}
+
+bool API_GetRegisteredPluginPresent(const char* name)
+{
+	// search gRegisteredPlugins for name
+    for (auto const& mod : gRegisteredPlugins)
+    {
+        if (mod.first == name)
+        {
+            return true;
+        }
+    }
+	return false;
 }

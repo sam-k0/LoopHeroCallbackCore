@@ -11,11 +11,11 @@
 #define YYSDK_PLUGIN // Declare the following code as a plugin
 #include "SDK/SDK.hpp"
 
-HINSTANCE DllHandle; // Self modhandle
+static HINSTANCE DllHandle; // Self modhandle
 
-std::string gPluginName = "sam-k0.callbackcore.yytk";
-YYTKPlugin* gThisPlugin = nullptr;
-CallbackAttributes_t* callbackAttr = nullptr;
+static std::string gPluginName = "sam-k0.callbackcore.yytk";
+static YYTKPlugin* gThisPlugin = nullptr;
+static CallbackAttributes_t* callbackAttr = nullptr;
 
 
 namespace Misc {

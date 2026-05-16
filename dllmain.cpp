@@ -2,20 +2,20 @@
 #include <Windows.h>
 
 // YYTK is in this now
-#include "MyHelper.h"
+#include "MyPlugin.h"
 #include "ModuleManager.h"
 #include "LHObjects.h"
 #include "LHSprites.h"
 #include "Assets.h"
-#include "ExposedFunctions.h"
-#include "CallbackCore.h"
+#include "CallbackApi.h"
+#include "CallbackCoreAttribs.h"
+#include "HttpUtil.h"
 // Plugin functionality
 #include <fstream>
 #include <iterator>
 #include <map>
 #include <format>
 #define _CRT_SECURE_NO_WARNINGS
-
 
 void ShowWelcomeMessage()
 {
@@ -43,7 +43,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 
     // call registered patches
     bool callOriginal = true;
-    CallbackCoreAttributes attribs = CallbackCoreAttributes(OriginalCall::CALLED); // default to called
+    CallbackCoreAttributes attribs = CallbackCoreAttributes(OriginalCall::EARLY); // Prepatch doesn't know if the original will be called.
 
     for (PrePostPatchCallback ThisPrePatch : PrePatchCallbacks)
     {
@@ -53,7 +53,20 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         }
     }
     
-    attribs.call = OriginalCall::CALLED;
+    attribs.call = OriginalCall::CALLED; // Default to Called
+
+    // Catch custom HttpEvents and cancel original call
+    if (strcmp(codeObj->i_pName, HTTP_EVENT_ID) == 0)
+    {
+        YYRValue asyncLoadMap = Binds::CallBuiltinA("variable_instance_get", { selfInst, "async_load" });
+        YYRValue value = Binds::CallBuiltinA("ds_map_find_value", { asyncLoadMap, "id" });
+        // check if it exists in the list of registered custom http events
+        if(HttpRequests::IsCustomHttpEvent((double)value))
+        {
+            callOriginal = false;
+            HttpRequests::HandleHttpEvent(asyncLoadMap);
+        }
+    }
 
     // Original event
     if (callOriginal)
@@ -96,7 +109,7 @@ DllExport YYTKStatus PluginEntry(
         PmCreateCallbackEx(pluginAttributes, 9999, reinterpret_cast<FNEventHandler>(ExecuteCodeCallback), EVT_CODE_EXECUTE, nullptr, callbackAttr);
     }
 
-    gReady = true;
+    gModuleManagerReady = true;
     
     // Set exported "ready" fn
     PluginAttributes_t* pAttr = nullptr;
@@ -106,54 +119,64 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     }
 
-    
-
 	// Export shared functions for mods to use, such as registering themselves and installing patches
-    if (PmSetExported(pAttr, "RegisterModule", RegisterModule) != YYTK_OK)
+    if (PmSetExported(pAttr, "RegisterModule", API_RegisterModule) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported RegisterModule()", CLR_RED);
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "UnregisterModule", UnregisterModule) != YYTK_OK)
+    if (PmSetExported(pAttr, "UnregisterModule", API_UnregisterModule) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported UnregisterModule()", CLR_RED);
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "CoreReady", Ready) != YYTK_OK)
+    if (PmSetExported(pAttr, "CoreReady", API_ModuleManagerReadyCheck) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported Ready()", CLR_RED);
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "API_InstallPostPatch", InstallPostPatch) != YYTK_OK)
+    if (PmSetExported(pAttr, "API_InstallPostPatch", API_InstallPostPatch) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported API_InstallPostPatch()", CLR_RED);
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "API_GetWindowHandle", GetWindowHandle) != YYTK_OK)
+    if (PmSetExported(pAttr, "API_GetWindowHandle", API_GetWindowHandle) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported API_GetWindowHandle()", CLR_RED);
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "API_InstallPrePatch", InstallPrePatch) != YYTK_OK)
+    if (PmSetExported(pAttr, "API_InstallPrePatch", API_InstallPrePatch) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported API_InstallPrePatch()", CLR_RED);
         return YYTK_FAIL;
     };
-
-    if (PmSetExported(pAttr, "API_GetRegisteredPluginCount", GetRegisteredPluginCount) != YYTK_OK)
+    // Plugin Enumeration API
+    if (PmSetExported(pAttr, "API_GetRegisteredPluginCount", API_GetRegisteredPluginCount) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported API_GetRegisteredPluginCount()", CLR_RED);
         return YYTK_FAIL;
     };
 
-    if (PmSetExported(pAttr, "API_GetRegisteredPluginName", GetRegisteredPluginName) != YYTK_OK)
+    if (PmSetExported(pAttr, "API_GetRegisteredPluginName", API_GetRegisteredPluginName) != YYTK_OK)
     {
         Misc::Print("Failed to PmSetExported API_GetRegisteredPluginName()", CLR_RED);
+        return YYTK_FAIL;
+    };
+
+    if (PmSetExported(pAttr, "API_GetRegisteredPluginPresent", API_GetRegisteredPluginPresent) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported API_GetRegisteredPluginPresent()", CLR_RED);
+        return YYTK_FAIL;
+    };
+    // Http API
+    if (PmSetExported(pAttr, "API_HttpGetRequest", HttpRequests::API_HttpGetRequest) != YYTK_OK)
+    {
+        Misc::Print("Failed to PmSetExported API_HttpGetRequest()", CLR_RED);
         return YYTK_FAIL;
     };
 
@@ -188,7 +211,7 @@ DWORD WINAPI KeyControls(HINSTANCE hModule)
     {
         if (GetAsyncKeyState(VK_F12) & 1)
         {   
-            if(!gReady)continue;
+            if(!gModuleManagerReady)continue;
 
             // List all registered mods
             PrintRegisteredMods();            

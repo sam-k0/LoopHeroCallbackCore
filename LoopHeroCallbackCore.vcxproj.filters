@@ -104,7 +104,7 @@
     <ClInclude Include="SDK\Structures\Undocumented\YYVAR\YYVAR.hpp">
       <Filter>Header Files\SDK</Filter>
     </ClInclude>
-    <ClInclude Include="MyHelper.h">
+    <ClInclude Include="MyPlugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Assets.h">
@@ -122,10 +122,13 @@
     <ClInclude Include="ModuleManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ExposedFunctions.h">
+    <ClInclude Include="CallbackApi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CallbackCore.h">
+    <ClInclude Include="CallbackCoreAttribs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HttpUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
