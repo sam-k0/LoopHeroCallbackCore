@@ -15,7 +15,13 @@
 #include <iterator>
 #include <map>
 #include <format>
+#include <optional>
 #define _CRT_SECURE_NO_WARNINGS
+
+#define BUTTON_PRESS_EVENT "gml_Object_o_base_button_Mouse_4"
+#define BUTTON_ALARM_EVENT "gml_Object_o_menu_button_Alarm_6"
+
+double gModsButtonRef = -1.;
 
 void ShowWelcomeMessage()
 {
@@ -40,6 +46,9 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
 
     if (!codeObj->i_pName)
         return YYTK_INVALIDARG;
+
+    if (!selfInst)
+		return YYTK_INVALIDARG;
 
     // call registered patches
     bool callOriginal = true;
@@ -67,6 +76,17 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
             HttpRequests::HandleHttpEvent(asyncLoadMap);
         }
     }
+
+    if (strcmp(codeObj->i_pName, BUTTON_PRESS_EVENT) == 0 && int(gModsButtonRef) == selfInst->i_id)
+    {
+        Binds::CallBuiltinA("url_open", {"https://github.com/sam-k0/LoopHero_Mods/blob/master/mods.md"});
+	}
+
+    if (strcmp(codeObj->i_pName, BUTTON_ALARM_EVENT) == 0 && int(gModsButtonRef) == selfInst->i_id)
+    {
+		callOriginal = false; // Dont call lang change alarm
+    }
+
 
     // Original event
     if (callOriginal)
@@ -187,15 +207,17 @@ DllExport YYTKStatus PluginEntry(
     // set version to modded
     double gv = static_cast<double>(Binds::CallBuiltinA("variable_global_get", {"game_version"}));
     Binds::CallBuiltinA("variable_global_set", { "game_version",std::format("{} modded", gv)});
-    // show mods popup
-   /* double modsinfo = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", {270.0,480.0 / 2, 0.0, (double)LHObjectEnum::o_menu_message}));
-    Binds::CallBuiltinA("variable_instance_set",{modsinfo, "text_message", "YYTK and CallbackCore are successfully initialized!\n\nPlease be aware that using mods may cause unexpected crashes.\n\nNevertheless, enjoy!"});
-    Binds::CallBuiltinA("variable_instance_set", { modsinfo, "text", "Understood" });*/
 
     // update check
     Versioning::TriggerUpdateCheck("https://api.github.com/repos/sam-k0/LoopHeroCallbackCore/releases/latest", gPluginVersion, Versioning::UpdateCheckHttpCallback);
 
 
+    Misc::Print("Creating button");
+    gModsButtonRef = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", {531., 330., -10010., (double)LHObjectEnum::o_menu_button}));
+    Binds::CallBuiltinA("variable_instance_set", { gModsButtonRef, "click_event", -1. }); // delete original callback
+    Binds::CallBuiltinA("variable_instance_set", { gModsButtonRef, "text", "Modding Hub" });
+    Binds::CallBuiltinA("variable_instance_set", { gModsButtonRef, "fa_ltext", "Modding Hub" });
+    
     return YYTK_OK; // Successful PluginEntry.
 }
 
