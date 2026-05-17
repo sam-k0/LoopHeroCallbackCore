@@ -110,7 +110,7 @@ DllExport YYTKStatus PluginEntry(
     }
 
     gModuleManagerReady = true;
-    
+#pragma region ExportFunctions
     // Set exported "ready" fn
     PluginAttributes_t* pAttr = nullptr;
     if (PmGetPluginAttributes(PluginObject, pAttr) != YYTK_OK)
@@ -180,17 +180,20 @@ DllExport YYTKStatus PluginEntry(
         return YYTK_FAIL;
     };
 
+#pragma endregion
+
     Misc::Print("Exported functions correctly. Mods can load these now.", CLR_GOLD);
 
     // set version to modded
     double gv = static_cast<double>(Binds::CallBuiltinA("variable_global_get", {"game_version"}));
     Binds::CallBuiltinA("variable_global_set", { "game_version",std::format("{} modded", gv)});
-
-
     // show mods popup
-    double modsinfo = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", { 270.0,480.0/2, 0.0, (double)LHObjectEnum::o_menu_message  }));
+   /* double modsinfo = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", {270.0,480.0 / 2, 0.0, (double)LHObjectEnum::o_menu_message}));
     Binds::CallBuiltinA("variable_instance_set",{modsinfo, "text_message", "YYTK and CallbackCore are successfully initialized!\n\nPlease be aware that using mods may cause unexpected crashes.\n\nNevertheless, enjoy!"});
-    Binds::CallBuiltinA("variable_instance_set", { modsinfo, "text", "Understood" });
+    Binds::CallBuiltinA("variable_instance_set", { modsinfo, "text", "Understood" });*/
+
+    // update check
+    Versioning::TriggerUpdateCheck("https://api.github.com/repos/sam-k0/LoopHeroCallbackCore/releases/latest", gPluginVersion, Versioning::UpdateCheckHttpCallback);
 
 
     return YYTK_OK; // Successful PluginEntry.

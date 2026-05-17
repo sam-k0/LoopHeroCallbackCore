@@ -3,8 +3,12 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include <regex>
+#include <format>
+#include "YYRValueParse.h"
 
 #define HTTP_EVENT_ID "gml_Object_oCloudSaves_Other_62"
+
 namespace HttpRequests
 {
 	using HttpCallbackFn = void(*)(const char* responseString, int statusCode, int httpStatus); // responseMap(ds_map), statusCode(0 for success, 1 for still loading, <0 for error), httpStatus (HTTP status code)
@@ -116,5 +120,88 @@ namespace HttpRequests
         YYRValue eventId = Binds::CallBuiltinA("http_get", {url, "GET", (double)headerMapId, "" });
         Binds::CallBuiltinA("ds_map_destroy", { headerMapId });
 		gPluginHttpEventIds.insert({ (int)eventId, callbackFn });
+    }
+}
+
+
+namespace Versioning
+{
+    // parses version tags in format of "v1.2.3" or "version 1.2.3" to an integer for easy comparison, returns -1 if invalid
+    int ParseVersionTag(const std::string& tag)
+    {
+        std::regex versionRegex(R"((\d+)\.(\d+)\.(\d+))");
+        std::smatch match;
+        if (std::regex_search(tag, match, versionRegex) && match.size() == 4)
+        {
+            int major = std::stoi(match[1]);
+            int minor = std::stoi(match[2]);
+            int patch = std::stoi(match[3]);
+            return major * 10000 + minor * 100 + patch;
+        }
+        return -1; // Invalid version tag
+    }
+
+    void TriggerUpdateCheck(const char* url, int currentVersionNumber, HttpRequests::HttpCallbackFn callbackFn)
+    {
+        HttpRequests::API_HttpGetRequest(url, callbackFn, -1.);
+	}
+
+    void ShowGenericNotice()
+    {   
+        double updateinfo = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", { 270.0,480.0 / 2, 0.0, (double)LHObjectEnum::o_menu_message }));
+        Binds::CallBuiltinA("variable_instance_set", { updateinfo, "text_message", std::format("Mod framework successfully initialized!").c_str() });
+        Binds::CallBuiltinA("variable_instance_set", { updateinfo, "text", "Okay" });
+    }
+
+    void UpdateCheckHttpCallback(const char* responseString, int statusCode, int httpStatus)
+    {
+        bool checkFailed = false;
+        // check response codes
+        if (statusCode == 1)// still loading
+        {
+            return ShowGenericNotice();
+        }
+        if (statusCode < 0)// error, maybe offline?
+        {
+            Misc::Print(std::format("Failed to check for updates. StatusCode: {}, HttpStatus: {}", statusCode, httpStatus));
+            return ShowGenericNotice();
+        }
+        // statuscode is 0 now
+		if (httpStatus != 200)
+        {
+            Misc::Print(std::format("Failed to check for updates: Http Error: {}", httpStatus));
+            return ShowGenericNotice();
+        }
+        // All errors are catched now
+
+         
+        // load as dsmap
+		YYRValue jsonMap = Binds::CallBuiltinA("json_decode", { responseString });
+        // get top level tag_name key
+		YYRValue tagName = Binds::CallBuiltinA("ds_map_find_value", { jsonMap, "tag_name" });
+		std::string tagNameStr = YYRValueParse::DCS(tagName);
+        Binds::CallBuiltinA("ds_map_destroy", { jsonMap });
+		
+        // parse it and compare to current version
+		int remoteVersion = ParseVersionTag(tagNameStr);
+        if (remoteVersion == -1)
+        {
+            Misc::Print(std::format("Failed to parse version tag from response: {}", tagNameStr));
+            return ShowGenericNotice();
+		}
+        
+		if (remoteVersion > gPluginVersion)
+        {
+            Misc::Print(std::format("A new version of the plugin is available! Latest version: {}. Please check the github releases page to update!", tagNameStr));
+            double updateinfo = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", { 270.0,480.0 / 2, 0.0, (double)LHObjectEnum::o_menu_message }));
+            Binds::CallBuiltinA("variable_instance_set", { updateinfo, "text_message", std::format("Mod framework successfully initialized!\n\n\nUpdate notice:\n\nA new version of Callback Core is available.\nVersion {} can be downloaded from the GitHub releases.", tagNameStr).c_str()});
+            Binds::CallBuiltinA("variable_instance_set", { updateinfo, "text", "Okay" });
+        }
+        else
+        {
+            Misc::Print(std::format("You are using the latest version of the plugin! {} superseeds {}", gPluginVersion, remoteVersion));
+            return ShowGenericNotice();
+        }
+		
     }
 }
