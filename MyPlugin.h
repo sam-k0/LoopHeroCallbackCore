@@ -14,7 +14,7 @@
 static HINSTANCE DllHandle; // Self modhandle
 
 static std::string gPluginName = "sam-k0.callbackcore.yytk";
-static int gPluginVersion = 20260517; // YYYYMMDD, used for update checking
+static int gPluginVersion = 20260527; // YYYYMMDD, used for update checking
 static YYTKPlugin* gThisPlugin = nullptr;
 static CallbackAttributes_t* callbackAttr = nullptr;
 

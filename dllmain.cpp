@@ -129,7 +129,6 @@ DllExport YYTKStatus PluginEntry(
         PmCreateCallbackEx(pluginAttributes, 9999, reinterpret_cast<FNEventHandler>(ExecuteCodeCallback), EVT_CODE_EXECUTE, nullptr, callbackAttr);
     }
 
-    gModuleManagerReady = true;
 #pragma region ExportFunctions
     // Set exported "ready" fn
     PluginAttributes_t* pAttr = nullptr;
@@ -199,7 +198,7 @@ DllExport YYTKStatus PluginEntry(
         Misc::Print("Failed to PmSetExported API_HttpGetRequest()", CLR_RED);
         return YYTK_FAIL;
     };
-
+    gModuleManagerReady = true;
 #pragma endregion
 
     Misc::Print("Exported functions correctly. Mods can load these now.", CLR_GOLD);
@@ -211,8 +210,6 @@ DllExport YYTKStatus PluginEntry(
     // update check
     Versioning::TriggerUpdateCheck("https://api.github.com/repos/sam-k0/LoopHeroCallbackCore/releases/latest", gPluginVersion, Versioning::UpdateCheckHttpCallback);
 
-
-    Misc::Print("Creating button");
     gModsButtonRef = static_cast<double>(Binds::CallBuiltinA("instance_create_depth", {531., 330., -10010., (double)LHObjectEnum::o_menu_button}));
     Binds::CallBuiltinA("variable_instance_set", { gModsButtonRef, "click_event", -1. }); // delete original callback
     Binds::CallBuiltinA("variable_instance_set", { gModsButtonRef, "text", "Modding Hub" });
