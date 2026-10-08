@@ -22,8 +22,7 @@ void API_InstallPostPatch(PrePostPatchCallback function)
 HWND API_GetWindowHandle()
 {
     YYRValue yyhwnd = Binds::CallBuiltinA("window_handle", {});
-    const char* cchwnd = (const char*)yyhwnd;
-    return (HWND)cchwnd;
+    return yyhwnd.As<HWND>();
 }
 
 

@@ -34,7 +34,7 @@ namespace HttpRequests
             {
                 YYRValue responseString = Binds::CallBuiltinA("ds_map_find_value", { asyncLoadMap, "result" });
                 // Call the callback function with the result map and status code 0 for success
-                gPluginHttpEventIds[(int)eventId](std::string(static_cast<const char*>(responseString)).c_str(), (double)gmStatus, (double)httpStatus);
+                gPluginHttpEventIds[(int)eventId](YYRValueParse::DCS(responseString).c_str(), (double)gmStatus, (double)httpStatus);
             }
             else
             {

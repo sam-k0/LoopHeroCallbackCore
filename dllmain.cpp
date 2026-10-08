@@ -67,7 +67,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
     // Catch custom HttpEvents and cancel original call
     if (strcmp(codeObj->i_pName, HTTP_EVENT_ID) == 0)
     {
-        YYRValue asyncLoadMap = Binds::CallBuiltinA("variable_instance_get", { selfInst, "async_load" });
+        YYRValue asyncLoadMap = Binds::CallBuiltinA("variable_instance_get", { (double)selfInst->i_id, "async_load" });
         YYRValue value = Binds::CallBuiltinA("ds_map_find_value", { asyncLoadMap, "id" });
         // check if it exists in the list of registered custom http events
         if(HttpRequests::IsCustomHttpEvent((double)value))
