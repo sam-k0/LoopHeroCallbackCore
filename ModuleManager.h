@@ -18,13 +18,13 @@ bool API_RegisterModule(std::string modName, YYTKPlugin* pluginHandle) // Plugin
     // Check if the module is already registered
     if (gRegisteredPlugins.find(modName) != gRegisteredPlugins.end())
     {
-        PrintMessage(CLR_RED,"Mod %s already registered!", modName);
+        PrintMessage(CLR_RED,"Mod %s already registered!", modName.c_str());
         return false;
     }
     // add to map
     gRegisteredPlugins.insert(std::pair<std::string, YYTKPlugin*>(modName, pluginHandle));
 
-	PrintMessage(CLR_GOLD,"Registered mod: %s", modName);
+	PrintMessage(CLR_GOLD,"Registered mod: %s", modName.c_str());
     return true;
     
 }

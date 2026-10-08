@@ -22,12 +22,12 @@ static CallbackAttributes_t* callbackAttr = nullptr;
 namespace Misc {
     void Print(std::string s, Color c = CLR_DEFAULT)
     {
-        PrintMessage(c, (gPluginName + ": " + s).c_str());
+        PrintMessage(c, "%s", (gPluginName + ": " + s).c_str());
     }
 
     void PrintDbg(std::string s, const char* func, int line, Color c)
     {
-        PrintMessage(c, (gPluginName + ": " + s + " ("+std::string(func)+":"+std::to_string(line)+")").c_str());
+        PrintMessage(c, "%s", (gPluginName + ": " + s + " ("+std::string(func)+":"+std::to_string(line)+")").c_str());
     }
 
     bool VectorContains(std::string find, std::vector<std::string>* v)
@@ -133,7 +133,7 @@ namespace Misc {
         for (int i = 0; i < (int)len; i++)
         {
             CallBuiltin(item, "array_get", nullptr, nullptr, { var, (double)i });
-            Misc::Print(static_cast<const char*>(item), c);
+            Misc::Print(item.operator std::string(), c);
         }
     }
 }
