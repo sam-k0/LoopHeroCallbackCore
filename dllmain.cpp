@@ -54,7 +54,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
     bool callOriginal = true;
     CallbackCoreAttributes attribs = CallbackCoreAttributes(OriginalCall::EARLY); // Prepatch doesn't know if the original will be called.
 
-    for (PrePostPatchCallback ThisPrePatch : PrePatchCallbacks)
+    for (size_t i = 0; PrePostPatchCallback ThisPrePatch = GetPatchCallback(PrePatchCallbacks, i); i++)
     {
         if (ThisPrePatch(codeEvent, (void*)&attribs) == YYTK_DONTCALL)
         {
@@ -99,7 +99,7 @@ YYTKStatus ExecuteCodeCallback(YYTKCodeEvent* codeEvent, void*)
         attribs.call = OriginalCall::CANCELLED;
     }
    
-    for (PrePostPatchCallback ThisPostPatch : PostPatchCallbacks)
+    for (size_t i = 0; PrePostPatchCallback ThisPostPatch = GetPatchCallback(PostPatchCallbacks, i); i++)
     {
         ThisPostPatch(codeEvent, (void*)&attribs);
     }
